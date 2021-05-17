@@ -14,15 +14,106 @@
 # limitations under the License.
 #
 
+import pandas as pd
+import numpy as np
+
+import zoo.zouwu as zouwu
+from .utils import *
 
 class TSDataset:
     def __init__(self, df,
                  id_col,
                  datetime_col,
                  target_col,
-                 extra_feature_col):
+                 extra_feature_col=None):
+        '''
+        TSDataset is an abstract of time series dataset.
+        :param df: a pandas dataframe for your raw time series data.
+        :param id_col: a str indicates the col name of dataframe id.
+        :param datetime_col: a str indicates the col name of datetime 
+               column in the input data frame.
+        :param target_col: a str indicates the col name of target column
+               in the input data frame.
+        :param extra_feature_col: (optional) a str indicates the col name
+               of extra feature columns that needs to predict the target column.
+        Here is an df example:
+        id        datetime      value   "extra feature 1"   "extra feature 2"
+        00        2019-01-01    1.9     1                   2
+        01        2019-01-01    2.3     0                   2
+        00        2019-01-02    2.4     3                   2
+        01        2019-01-02    2.6     0                   2
+        `tsdataset = TSDataset(df,
+                               datetime_col="datetime",
+                               target_col="value",
+                               id_col="id",
+                               extra_feature_col=["extra feature 1",""extra feature 2])`
+        TODO: infer `id_col` automatically if not input.
+        TODO: check if datetime col is sorted.
+        TODO: check if each sub dataframe divided by id col have the same length.
+        TODO: respect the original order of `id_col`
+        '''
+        # input items
         self.df = df
-        self._id_col = id_col
-        self._datetime_col = datetime_col
-        self._target_col = target_col
-        self._feature_col = extra_feature_col
+        self.id_col = id_col
+        self.datetime_col = datetime_col
+        self.target_col = _to_list(target_col, "target_col")
+        self.feature_col = _to_list(extra_feature_col, "extra_feature_col")
+
+        # optional 
+        self.numpy_x = None
+        self.numpy_y = None
+
+        self._check_input()
+        self._clean_input()
+
+        self._id_bag = np.unique(self.df[self.id_col])
+
+
+    def _clean_input(self):
+        '''
+        Clean the input by changing some of the dataset
+        '''
+        # check datetime col
+        self.df = _check_datetime(self.df, self.datetime_col)
+
+        # reindex
+        self.df = _reindex_dataframe()
+
+    def _check_input(self):
+        '''
+        Check the input without changing anything 
+        '''
+        # check type
+        _check_type(self.df, "df", pd.DataFrame)
+        _check_type(self.id_col, "id_col", str)
+        _check_type(self.datetime_col, "datetime_col", str)
+        _check_type(self.target_col, "target_col", list)
+        _check_type(self.feature_col, "feature_col", list)
+
+        # check valid name
+        _check_col_within(self.df, self.id_col)
+        _check_col_within(self.df, self.datetime_col)
+        for target_col_name in self.target_col:
+            _check_col_within(self.df, target_col_name)
+        for feature_col_name in self.feature_col:
+            _check_col_within(self.df, feature_col_name)
+
+    def to_numpy(self):
+        # TODO: will be implemented after implementing rolling
+        raise NotImplementedError("This method has not been implemented!")
+    
+    def to_pandas(self):
+        return self.df
+    
+    def get_feature_list(self):
+        return self.feature_col
+    
+    def _impute_per_df(self, df):
+        return self._imputer.impute(df)
+    
+    def impute(self, mode="LastFillImpute"):
+        self._imputer = getattr(zouwu.preprocessing.impute, mode)()
+        self.df = pd.concat([self._impute_per_df(df[self.id_col==id_name]) 
+                             for id_name in self._id_bag])
+        return self
+        
