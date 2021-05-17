@@ -17,8 +17,8 @@
 import pandas as pd
 import numpy as np
 
-import zoo.zouwu as zouwu
-from .utils import *
+import zoo.zouwu.preprocessing.impute.impute as zouwu_impute
+from zoo.zouwu.data.utils import *
 
 class TSDataset:
     def __init__(self, df,
@@ -56,47 +56,46 @@ class TSDataset:
         self.df = df
         self.id_col = id_col
         self.datetime_col = datetime_col
-        self.target_col = _to_list(target_col, "target_col")
-        self.feature_col = _to_list(extra_feature_col, "extra_feature_col")
+        self.target_col = to_list(target_col, name="target_col")
+        self.feature_col = to_list(extra_feature_col, name="extra_feature_col")
 
-        # optional 
-        self.numpy_x = None
-        self.numpy_y = None
-
+        # check and clean input
         self._check_input()
+        self._id_bag = list(np.unique(self.df[self.id_col]))
         self._clean_input()
 
-        self._id_bag = np.unique(self.df[self.id_col])
-
+        # other internal variables
+        self._numpy_x = None
+        self._numpy_y = None
 
     def _clean_input(self):
         '''
         Clean the input by changing some of the dataset
         '''
         # check datetime col
-        self.df = _check_datetime(self.df, self.datetime_col)
-
-        # reindex
-        self.df = _reindex_dataframe()
+        self.df = check_datetime(self.df, self.datetime_col)
+        # check uniform
+        self._interval = [check_uniform(self.df[self.df[self.id_col]==id_name], 
+                                        self.datetime_col)
+                          for id_name in self._id_bag][0]
 
     def _check_input(self):
         '''
         Check the input without changing anything 
         '''
         # check type
-        _check_type(self.df, "df", pd.DataFrame)
-        _check_type(self.id_col, "id_col", str)
-        _check_type(self.datetime_col, "datetime_col", str)
-        _check_type(self.target_col, "target_col", list)
-        _check_type(self.feature_col, "feature_col", list)
-
+        check_type(self.df, "df", pd.DataFrame)
+        check_type(self.id_col, "id_col", str)
+        check_type(self.datetime_col, "datetime_col", str)
+        check_type(self.target_col, "target_col", list)
+        check_type(self.feature_col, "feature_col", list)
         # check valid name
-        _check_col_within(self.df, self.id_col)
-        _check_col_within(self.df, self.datetime_col)
+        check_col_within(self.df, self.id_col)
+        check_col_within(self.df, self.datetime_col)
         for target_col_name in self.target_col:
-            _check_col_within(self.df, target_col_name)
+            check_col_within(self.df, target_col_name)
         for feature_col_name in self.feature_col:
-            _check_col_within(self.df, feature_col_name)
+            check_col_within(self.df, feature_col_name)
 
     def to_numpy(self):
         # TODO: will be implemented after implementing rolling
@@ -110,10 +109,13 @@ class TSDataset:
     
     def _impute_per_df(self, df):
         return self._imputer.impute(df)
-    
-    def impute(self, mode="LastFillImpute"):
-        self._imputer = getattr(zouwu.preprocessing.impute, mode)()
-        self.df = pd.concat([self._impute_per_df(df[self.id_col==id_name]) 
+
+    def impute(self, mode="LastFillImpute", reindex=False):
+        if reindex:
+            self.df = [reindex_dataframe(self.df[self.df[self.id_col]==id_name], 
+                                         self.datetime_col)
+                          for id_name in self._id_bag]
+        self._imputer = getattr(zouwu_impute, mode)()
+        self.df = pd.concat([self._impute_per_df(self.df[self.df[self.id_col]==id_name]) 
                              for id_name in self._id_bag])
         return self
-        
