@@ -37,7 +37,7 @@ def check_col_within(df, col_name):
 
 def check_datetime(df, dt_col):
     # adapt from feature transformer _check_input func
-    df = df.reset_index()
+    # df = df.reset_index() # TODO: is it necessary?
     dt = df[dt_col]
     if not np.issubdtype(dt, np.datetime64):
         raise ValueError("The dtype of datetime column is required to be np.datetime64!")
@@ -46,11 +46,9 @@ def check_datetime(df, dt_col):
         raise ValueError("Missing datetime in input dataframe!")
     return df
 
-def reindex_dataframe(df, dt_col, interval):
-    raise NotImplementedError("_reindex_dataframe has not been implemented")
-
 def check_uniform(df, dt_col):
     # adapt from feature transformer _check_input func
+    # TODO: handle missing idx, especially missing 0/1
     dt = df[dt_col]
     interval = dt[1] - dt[0]
     if not all([dt[i] - dt[i - 1] == interval for i in range(1, len(dt))]):

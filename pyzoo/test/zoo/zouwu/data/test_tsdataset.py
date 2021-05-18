@@ -29,6 +29,20 @@ def get_ts_df():
                              "extra feature": np.random.randn(sample_num)})
     return train_df
 
+def get_ugly_ts_df():
+    data = np.random.random_sample((50, 5))
+    mask = np.random.random_sample((50, 5))
+    mask[mask >= 0.4] = 2
+    mask[mask < 0.4] = 1
+    mask[mask < 0.2] = 0
+    data[mask == 0] = None
+    data[mask == 1] = np.nan
+    df = pd.DataFrame(data, columns=['a', 'b', 'c', 'd', 'e'])
+    df["datetime"] = pd.date_range('1/1/2019', periods=50)
+    df["id"] = np.array(['00']*50)
+    # df = df.drop(index=[40])
+    return df
+
 class TestImpute(ZooTestCase):
     def setup_method(self, method):
         pass
@@ -68,3 +82,24 @@ class TestImpute(ZooTestCase):
         tsdata = TSDataset(df, id_col="id", datetime_col="datetime",
                            target_col="value", extra_feature_col=["extra feature"])
         tsdata.impute(mode="LastFillImpute", reindex=False)
+        assert int(tsdata.to_pandas().isna().sum().sum()) == 0
+
+        df = get_ts_df()
+        tsdata = TSDataset(df, id_col="id", datetime_col="datetime",
+                           target_col="value", extra_feature_col=["extra feature"])
+        tsdata.impute(mode="FillZeroImpute", reindex=False)
+        assert int(tsdata.to_pandas().isna().sum().sum()) == 0
+
+        ugly_df = get_ugly_ts_df()
+        ugly_tsdata = TSDataset(ugly_df, id_col="id", datetime_col="datetime",
+                           target_col="e", extra_feature_col=["a","b","c","d"])
+        ugly_tsdata.impute(mode="LastFillImpute", reindex=False)
+        assert int(ugly_tsdata.to_pandas().isna().sum().sum()) == 0
+
+        ugly_df = get_ugly_ts_df()
+        ugly_tsdata = TSDataset(ugly_df, id_col="id", datetime_col="datetime",
+                           target_col="e", extra_feature_col=["a","b","c","d"])
+        print(ugly_tsdata.df)
+        ugly_tsdata.impute(mode="FillZeroImpute", reindex=False)
+        print(ugly_tsdata.df)
+        assert int(ugly_tsdata.to_pandas().isna().sum().sum()) == 0

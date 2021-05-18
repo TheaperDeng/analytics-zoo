@@ -68,6 +68,40 @@ class TSDataset:
         self._numpy_x = None
         self._numpy_y = None
 
+
+    def to_numpy(self):
+        # TODO: will be implemented after implementing rolling
+        raise NotImplementedError("This method has not been implemented!")
+    
+
+    def to_pandas(self):
+        return self.df
+    
+
+    def get_feature_list(self):
+        return self.feature_col
+
+
+    def impute(self, mode="LastFillImpute", reindex=False):
+        '''
+        impute the tsdataset
+        :param mode: a str defaulted to "LastFillImpute" indicates imputing method.
+               "FillZeroImpute" and "LastFillImpute" are supported for now. 
+        :param reindex: indicates if we need to reindex the datetime to fill in the
+               missing datetime.
+        '''
+        if reindex:
+            raise NotImplementedError("`reindex` has not been implemented")
+        self._imputer = getattr(zouwu_impute, mode)()
+        self.df = pd.concat([self._impute_per_df(self.df[self.df[self.id_col]==id_name]) 
+                             for id_name in self._id_bag])
+        return self
+
+
+    def _impute_per_df(self, df):
+        return self._imputer.impute(df)
+
+
     def _clean_input(self):
         '''
         Clean the input by changing some of the dataset
@@ -78,6 +112,7 @@ class TSDataset:
         self._interval = [check_uniform(self.df[self.df[self.id_col]==id_name], 
                                         self.datetime_col)
                           for id_name in self._id_bag][0]
+
 
     def _check_input(self):
         '''
@@ -96,26 +131,3 @@ class TSDataset:
             check_col_within(self.df, target_col_name)
         for feature_col_name in self.feature_col:
             check_col_within(self.df, feature_col_name)
-
-    def to_numpy(self):
-        # TODO: will be implemented after implementing rolling
-        raise NotImplementedError("This method has not been implemented!")
-    
-    def to_pandas(self):
-        return self.df
-    
-    def get_feature_list(self):
-        return self.feature_col
-    
-    def _impute_per_df(self, df):
-        return self._imputer.impute(df)
-
-    def impute(self, mode="LastFillImpute", reindex=False):
-        if reindex:
-            self.df = [reindex_dataframe(self.df[self.df[self.id_col]==id_name], 
-                                         self.datetime_col)
-                          for id_name in self._id_bag]
-        self._imputer = getattr(zouwu_impute, mode)()
-        self.df = pd.concat([self._impute_per_df(self.df[self.df[self.id_col]==id_name]) 
-                             for id_name in self._id_bag])
-        return self
