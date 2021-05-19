@@ -32,9 +32,9 @@ class TSDataset:
         :param id_col: a str indicates the col name of dataframe id.
         :param datetime_col: a str indicates the col name of datetime 
                column in the input data frame.
-        :param target_col: a str indicates the col name of target column
+        :param target_col: a str or list indicates the col name of target column
                in the input data frame.
-        :param extra_feature_col: (optional) a str indicates the col name
+        :param extra_feature_col: (optional) a str or list indicates the col name
                of extra feature columns that needs to predict the target column.
         Here is an df example:
         id        datetime      value   "extra feature 1"   "extra feature 2"
@@ -42,18 +42,20 @@ class TSDataset:
         01        2019-01-01    2.3     0                   2
         00        2019-01-02    2.4     3                   2
         01        2019-01-02    2.6     0                   2
-        `tsdataset = TSDataset(df,
-                               datetime_col="datetime",
-                               target_col="value",
-                               id_col="id",
-                               extra_feature_col=["extra feature 1",""extra feature 2])`
-        TODO: infer `id_col` automatically if not input.
+        ```python
+        tsdataset = TSDataset(df,
+                              datetime_col="datetime",
+                              target_col="value",
+                              id_col="id",
+                              extra_feature_col=["extra feature 1",""extra feature 2])
+        ```
+        TODO: infer and create `id_col` automatically if not input.
         TODO: check if datetime col is sorted.
         TODO: check if each sub dataframe divided by id col have the same length.
         TODO: respect the original order of `id_col`
         '''
         # input items
-        self.df = df
+        self.df = df.copy(deep=True)
         self.id_col = id_col
         self.datetime_col = datetime_col
         self.target_col = to_list(target_col, name="target_col")
@@ -70,13 +72,19 @@ class TSDataset:
 
 
     def to_numpy(self):
+        '''
+        export rolling result in form of a tuple of numpy ndarray (x, y)
+        '''
         # TODO: will be implemented after implementing rolling
         raise NotImplementedError("This method has not been implemented!")
     
 
     def to_pandas(self):
+        '''
+        export the pandas dataframe 
+        '''
         return self.df
-    
+
 
     def get_feature_list(self):
         return self.feature_col
@@ -96,6 +104,26 @@ class TSDataset:
         self.df = pd.concat([self._impute_per_df(self.df[self.df[self.id_col]==id_name]) 
                              for id_name in self._id_bag])
         return self
+
+
+    def deduplicate(self, mode="mean"):
+        raise NotImplementedError("This method has not been implemented!")
+
+
+    def gen_dt_feature(self):
+        raise NotImplementedError("This method has not been implemented!")
+
+
+    def gen_global_feature(self):
+        raise NotImplementedError("This method has not been implemented!")
+
+
+    def rolling(self, lookback, horizon, feature=None):
+        raise NotImplementedError("This method has not been implemented!")
+
+
+    def scale(self, fit=True, config=None):
+        raise NotImplementedError("This method has not been implemented!")
 
 
     def _impute_per_df(self, df):
