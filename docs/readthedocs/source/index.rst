@@ -72,6 +72,7 @@ Analytics Zoo Documentation
    doc/PythonAPI/AutoML/automl.rst
    doc/PythonAPI/Friesian/feature.rst
    doc/PythonAPI/Chronos/forecasters.rst
+   doc/PythonAPI/Chronos/tsdataset.rst
    
 .. toctree::
    :maxdepth: 1
