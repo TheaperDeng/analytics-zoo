@@ -91,7 +91,6 @@ class TSDataset:
         :return: a TSDataset instance when with_split is set to False,
                  three TSDataset instances when with_split is set to True.
 
-
         Here is a df example:
 
         id        datetime      value   "extra feature 1"   "extra feature 2"
